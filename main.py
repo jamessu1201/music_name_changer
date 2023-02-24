@@ -3,20 +3,18 @@ from shazamio import Shazam
 import os
 
 def split_name():   #split path and filename
-	path=input()
-	a=path.rfind('/',0,len(path)-1)
-	name=path[a+1:]
-	path=path[:a+1]
-	return path,name
+	inp=input()
+	path=os.path.split(inp)
+	return path[0]+'/',path[1]
 
-async def song_search(position,filename): #search the song but not renamed(for developer)
+async def song_search(position,filename): #search the song
     shazam = Shazam()
     song = await shazam.recognize_song(position+filename)
-    if not song['matches']:
-        print('no match song.')
+    if not song['matches']:		#if shazam can't regonized the song then pass it
         return False,'no match song'
-    songname=song['track']['title']+' - '+song['track']['subtitle']+'.mp3'
-    print(songname)
+    songname=str(song['track']['title']).replace('"',' ')+' - '+str(song['track']['subtitle']).replace('"',' ')+'.mp3'
+
+    return True,songname
 
 async def song_rename(position,filename):
     
@@ -24,16 +22,17 @@ async def song_rename(position,filename):
 		return False,'file not found.'
 	
 	if(' - ' in filename):  #if filename is renamed then pass it
-		return True,'file renamed.'
+		return False,'file renamed.'
 
-	shazam = Shazam()
-	song = await shazam.recognize_song(position+filename)
-	if not song['matches']:     #if shazam can't regonized the song then pass it
-		return False,'no match song.'
+	
+	fail_code,songname=await song_search(position,filename)
+	if(fail_code==False):
+		return False,songname
 
-	songname=song['track']['title']+' - '+song['track']['subtitle']+'.mp3'
-	os.rename(position+filename,position+songname)
-	return True,'successful! renamed'+songname
+	if(not os.path.isfile(position+songname)):
+		os.rename(position+filename,position+songname)
+		return True,'successful! renamed '+songname
+	return False,songname+" name exists,"+filename+" can't rename"
 
 
 
@@ -73,4 +72,5 @@ elif choose==3:
     print("input:")
     path,name=split_name()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(song_search(path,name))
+    fail_code,fail_content=loop.run_until_complete(song_search(path,name))
+    print(fail_content)
