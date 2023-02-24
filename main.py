@@ -2,22 +2,28 @@ import asyncio
 from shazamio import Shazam
 import os
 
+ban_char=['"','/','\\']
+
 def split_name():   #split path and filename
 	inp=input()
 	path=os.path.split(inp)
 	return path[0]+'/',path[1]
 
 async def song_search(position,filename): #search the song
-    shazam = Shazam()
-    song = await shazam.recognize_song(position+filename)
-    if not song['matches']:		#if shazam can't regonized the song then pass it
-        return False,'no match song'
-    songname=str(song['track']['title']).replace('"',' ')+' - '+str(song['track']['subtitle']).replace('"',' ')+'.mp3'
-
-    return True,songname
+	shazam = Shazam()
+	song = await shazam.recognize_song(position+filename)
+	if not song['matches']:		#if shazam can't regonized the song then pass it
+		return False,'no match song'
+	title=str(song['track']['title'])
+	subtitle=str(song['track']['subtitle'])
+	for ban in ban_char:
+		title=title.replace(ban,' ')
+		subtitle=subtitle.replace(ban,' ')
+	songname=title+' - '+subtitle+'.mp3'
+	return True,songname
 
 async def song_rename(position,filename):
-    
+	
 	if(not os.path.isfile(position+filename)):	#if file not exist then return
 		return False,'file not found.'
 	
@@ -69,8 +75,8 @@ elif choose==2:
 		print(fail_content)
 
 elif choose==3:
-    print("input:")
-    path,name=split_name()
-    loop = asyncio.get_event_loop()
-    fail_code,fail_content=loop.run_until_complete(song_search(path,name))
-    print(fail_content)
+	print("input:")
+	path,name=split_name()
+	loop = asyncio.get_event_loop()
+	fail_code,fail_content=loop.run_until_complete(song_search(path,name))
+	print(fail_content)
